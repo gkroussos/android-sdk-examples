@@ -1,6 +1,7 @@
 package com.indooratlas.android.sdk.examples.wayfinding;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -11,6 +12,7 @@ import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.graphics.PointF;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -76,13 +78,15 @@ public class WayfindingActivity extends FragmentActivity {
 
     private List<Edge> mEdges;
     private List<Node> mNodes;
+    List<Node> mPath = null;
 
     private Wayfinder mWayfinder;
-    private long mDrawTime = 0;
+    //private long mDrawTime = 0;
     private Node mDestination;
 
+    private WayfindingActivity mWayfindingActivity = this;
+
     private IALocationListener mLocationListener = new IALocationListenerSupport() {
-        List<Node> path = null;
 
         @Override
         public void onLocationChanged(IALocation location) {
@@ -93,21 +97,21 @@ public class WayfindingActivity extends FragmentActivity {
                 mImageView.setDotCenter(point);
                 mImageView.postInvalidate();
 
-                if (mDestination != null && (path == null || System.currentTimeMillis() - mDrawTime > 5000)) {
+                if (mDestination != null && (mWayfindingActivity.getPath() == null || !mWayfinder.isRunning())) {
 
                     Node src = mWayfinder.getNearestNode(new double[]{location.getLatitude(), location.getLongitude()});
-                    //Node dst = mNodes.get(mNodes.size() - 1);
 
-                    try {
-                        path = mWayfinder.getPath(src, mDestination);
+                    /*try {
+                        mPath = mWayfinder.getPath(src, mDestination);
                     } catch (PathNotFoundException e) {
                         Log.e(TAG, "Path not found");
                         Toast.makeText(WayfindingActivity.this, "Path not found", Toast.LENGTH_SHORT).show();
-                    }
-                    mDrawTime = System.currentTimeMillis();
+                    }*/
+                    mWayfinder.updatePathAsync(src, mDestination, mWayfindingActivity);
+                    //mDrawTime = System.currentTimeMillis();
                 }
 
-                drawNodes(path);
+                drawNodes(mWayfindingActivity.getPath());
             }
         }
     };
@@ -167,6 +171,8 @@ public class WayfindingActivity extends FragmentActivity {
                     PointF point = mImageView.viewToSourceCoord((float)x, (float)y);
                     IALatLng latLng = mFloorPlan.pointToCoordinate(point);
                     mDestination = mWayfinder.getNearestNode(new double[]{latLng.latitude, latLng.longitude});
+                    mWayfinder.cancelRunningTask();
+                    mPath = null
                 }
                 return true;
             }
@@ -372,6 +378,17 @@ public class WayfindingActivity extends FragmentActivity {
             );
         }
         return edges;
+    }
+
+    public List<Node> getPath() {
+        return this.mPath;
+    }
+
+    public void setPath(List<Node> path) {
+        if (this.mPath == null && path != null) {
+            Toast.makeText(WayfindingActivity.this, "New path set", Toast.LENGTH_SHORT).show();
+        }
+        this.mPath = path;
     }
 }
 

@@ -1,7 +1,9 @@
 package com.indooratlas.android.sdk.examples.wayfinding;
 
+import android.os.AsyncTask;
+import android.util.Log;
+
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import no.wtw.android.dijkstra.DijkstraAlgorithm;
@@ -18,6 +20,8 @@ public class Wayfinder {
     private List<Node> nodes;
     private Graph graph;
     private DijkstraAlgorithm algorithm;
+    private boolean running = false;
+    private AsyncTask task = null;
 
     Wayfinder(List<Node> nodes, List<Edge> edges) {
         this.nodes = nodes;
@@ -26,7 +30,11 @@ public class Wayfinder {
         this.algorithm = new DijkstraAlgorithm(this.graph);
     }
 
-    public List<Node> getPath(Node src, Node dst) throws PathNotFoundException {
+    public boolean isRunning() {
+        return this.running;
+    }
+
+    private List<Node> getPath(Node src, Node dst) throws PathNotFoundException {
         List<Vertex> path = this.algorithm.execute(wrapNodeToVertex(src)).getPath(wrapNodeToVertex(dst));
         ArrayList<Node> nodePath = new ArrayList<>();
 
@@ -34,6 +42,23 @@ public class Wayfinder {
             nodePath.add(v.getPayload());
         }
         return nodePath;
+    }
+
+    public void updatePathAsync(Node src, Node dst, WayfindingActivity activity) {
+        if(!this.running) {
+            this.running = true;
+            this.task = new PathGenerationTask(activity).execute(src, dst);
+        }
+    }
+
+    public boolean cancelRunningTask() {
+        if (this.task != null && this.task.isCancelled() == false) {
+            if (this.task.cancel(true)) {
+                this.running = false;
+                return true;
+            }
+        }
+        return false;
     }
 
     private List<no.wtw.android.dijkstra.model.Edge> convertEdges(List<Edge> edges) {
@@ -94,5 +119,33 @@ public class Wayfinder {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         return 6378137 * c;
+    }
+
+    private class PathGenerationTask extends AsyncTask<Node, String, List<Node>> {
+        WayfindingActivity activity;
+
+        PathGenerationTask(WayfindingActivity activity) {
+            this.activity = activity;
+        }
+
+        @Override
+        protected List<Node> doInBackground(Node... nodes) {
+            Node src = nodes[0];
+            Node dst = nodes[1];
+
+            List<Node> path = null;
+            try {
+                path = getPath(src, dst);
+            } catch (PathNotFoundException e) {
+                Log.e("Wayfinder", "Path not found");
+            }
+
+            return path;
+        }
+
+        protected void onPostExecute(List<Node> result) {
+            activity.setPath(result);
+            running = false;
+        }
     }
 }
