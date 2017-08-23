@@ -27,6 +27,7 @@ public class BlueDotView extends SubsamplingScaleImageView {
     private PointF dotCenter = null;
     private List<PointF> points;
     private Path path = new Path();
+    private PointF mDestinationPoint;
 
     public void setRadius(float radius) {
         this.radius = radius;
@@ -50,8 +51,12 @@ public class BlueDotView extends SubsamplingScaleImageView {
         setPanLimit(SubsamplingScaleImageView.PAN_LIMIT_CENTER);
     }
 
-    public void addDrawPoints(List<PointF> pointList) {
+    public void addPath(List<PointF> pointList) {
         points = new ArrayList<>(pointList);
+    }
+
+    public void addPoint(PointF point) {
+        mDestinationPoint = point;
     }
 
     @Override
@@ -94,6 +99,18 @@ public class BlueDotView extends SubsamplingScaleImageView {
                 iter += 1;
             }
             canvas.drawPath(path, paint2);
+        }
+        if (mDestinationPoint != null) {
+            PointF vPoint = sourceToViewCoord(mDestinationPoint);
+
+            Paint paint = new Paint();
+            paint.setAntiAlias(true);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(getResources().getColor(R.color.red));
+
+            float scaledRadius = getScale() * radius;
+            canvas.drawCircle(vPoint.x, vPoint.y, scaledRadius, paint);
+
         }
     }
 }

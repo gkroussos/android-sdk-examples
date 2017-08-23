@@ -157,6 +157,9 @@ public class WayfindingActivity extends FragmentActivity {
                 public boolean onSingleTapConfirmed(MotionEvent e) {
                     if (mImageView.isReady()) {
                         PointF sCoord = mImageView.viewToSourceCoord(e.getX(), e.getY());
+                        Toast.makeText(WayfindingActivity.this, "Started path computation!",
+                                Toast.LENGTH_SHORT).show();
+                        mImageView.addPoint(sCoord);
                         IALatLng latLng = mFloorPlan.pointToCoordinate(sCoord);
                         mDestination = mWayfinder.getNearestNode(new double[]{latLng.latitude, latLng.longitude});
                         mWayfinder.cancelRunningTask();
@@ -349,7 +352,7 @@ public class WayfindingActivity extends FragmentActivity {
                 points.add(mFloorPlan.coordinateToPoint(latLng));
 
             }
-            mImageView.addDrawPoints(points);
+            mImageView.addPath(points);
         }
     }
 
