@@ -15,6 +15,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
@@ -47,6 +48,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 import no.wtw.android.dijkstra.exception.PathNotFoundException;
@@ -76,9 +79,11 @@ public class WayfindingActivity extends FragmentActivity {
 
     private Wayfinder mWayfinder;
     private long mDrawTime = 0;
-    private PointF mDestination = null;
+    private Node mDestination;
 
     private IALocationListener mLocationListener = new IALocationListenerSupport() {
+        List<Node> path = null;
+
         @Override
         public void onLocationChanged(IALocation location) {
             Log.d(TAG, "location is: " + location.getLatitude() + "," + location.getLongitude());
@@ -88,20 +93,18 @@ public class WayfindingActivity extends FragmentActivity {
                 mImageView.setDotCenter(point);
                 mImageView.postInvalidate();
 
-                //Node src = new Node(location.getLongitude(), location.getLatitude());
-                Node src = mNodes.get(0);
-                Node dst = mNodes.get(mNodes.size() - 1);
+                if (mDestination != null && (path == null || System.currentTimeMillis() - mDrawTime > 5000)) {
 
-                List<Node> path = null;
-                try {
-                    if (mDrawTime == 0 || mDrawTime - System.currentTimeMillis() > 5000) {
-                        path = mWayfinder.getPath(src, dst);
-                        mDrawTime = System.currentTimeMillis();
+                    Node src = mWayfinder.getNearestNode(new double[]{location.getLatitude(), location.getLongitude()});
+                    //Node dst = mNodes.get(mNodes.size() - 1);
+
+                    try {
+                        path = mWayfinder.getPath(src, mDestination);
+                    } catch (PathNotFoundException e) {
+                        Log.e(TAG, "Path not found");
+                        Toast.makeText(WayfindingActivity.this, "Path not found", Toast.LENGTH_SHORT).show();
                     }
-
-                } catch (PathNotFoundException e) {
-                    Log.e(TAG, "Path not found");
-                    Toast.makeText(WayfindingActivity.this, "Path not found", Toast.LENGTH_SHORT).show();
+                    mDrawTime = System.currentTimeMillis();
                 }
 
                 drawNodes(path);
@@ -141,7 +144,7 @@ public class WayfindingActivity extends FragmentActivity {
         mNodes = readCsvToNodes(R.raw.nodes);
         mEdges = readCsvToEdges(R.raw.edges, mNodes);
 
-        mWayfinder = new Wayfinder(mEdges);
+        mWayfinder = new Wayfinder(mNodes, mEdges);
 
         mDownloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
         mIALocationManager = IALocationManager.create(this);
@@ -161,7 +164,9 @@ public class WayfindingActivity extends FragmentActivity {
                 if (event.getAction() == MotionEvent.ACTION_DOWN){
                     int x = (int) event.getX();
                     int y = (int) event.getY();
-                    mDestination = mImageView.viewToSourceCoord((float)x, (float)y);
+                    PointF point = mImageView.viewToSourceCoord((float)x, (float)y);
+                    IALatLng latLng = mFloorPlan.pointToCoordinate(point);
+                    mDestination = mWayfinder.getNearestNode(new double[]{latLng.latitude, latLng.longitude});
                 }
                 return true;
             }

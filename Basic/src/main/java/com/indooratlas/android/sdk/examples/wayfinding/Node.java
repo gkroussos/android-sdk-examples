@@ -29,6 +29,10 @@ public class Node {
         this.y = y;
     }
 
+    public double[] getLatLon() {
+        return new double[]{y, x};
+    }
+
     @Override
     public boolean equals(Object other) {
         if (this == other)
