@@ -3,6 +3,7 @@ package com.indooratlas.android.sdk.examples.wayfinding;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PointF;
@@ -78,6 +79,8 @@ public class BlueDotView extends SubsamplingScaleImageView {
             paint2.setStyle(Paint.Style.STROKE);
             paint2.setColor(getResources().getColor(R.color.red));
             paint2.setStrokeWidth(25);
+            paint2.setPathEffect(new DashPathEffect(new float[] {10,10}, 5));
+            paint2.setAlpha(120);
 
             int iter = 0;
             path.reset();
