@@ -45,6 +45,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 import no.wtw.android.dijkstra.exception.PathNotFoundException;
@@ -73,6 +75,9 @@ public class WayfindingActivity extends FragmentActivity {
     private Wayfinder mWayfinder;
 
     private IALocationListener mLocationListener = new IALocationListenerSupport() {
+        Date pathUpdated = Calendar.getInstance().getTime();
+        List<Node> path = null;
+
         @Override
         public void onLocationChanged(IALocation location) {
             Log.d(TAG, "location is: " + location.getLatitude() + "," + location.getLongitude());
@@ -82,16 +87,19 @@ public class WayfindingActivity extends FragmentActivity {
                 mImageView.setDotCenter(point);
                 mImageView.postInvalidate();
 
-                //Node src = new Node(location.getLongitude(), location.getLatitude());
-                Node src = mNodes.get(0);
-                Node dst = mNodes.get(mNodes.size() - 1);
+                Date currTime = Calendar.getInstance().getTime();
+                if (path == null || currTime.getTime() - pathUpdated.getTime() > 5000) {
+                    pathUpdated = currTime;
 
-                List<Node> path = null;
-                try {
-                    path = mWayfinder.getPath(src, dst);
-                } catch (PathNotFoundException e) {
-                    Log.e(TAG, "Path not found");
-                    Toast.makeText(WayfindingActivity.this, "Path not found", Toast.LENGTH_SHORT).show();
+                    Node src = mWayfinder.getNearestNode(new double[]{location.getLatitude(), location.getLongitude()});
+                    Node dst = mNodes.get(mNodes.size() - 1);
+
+                    try {
+                        path = mWayfinder.getPath(src, dst);
+                    } catch (PathNotFoundException e) {
+                        Log.e(TAG, "Path not found");
+                        Toast.makeText(WayfindingActivity.this, "Path not found", Toast.LENGTH_SHORT).show();
+                    }
                 }
 
                 drawNodes(path);
@@ -131,7 +139,7 @@ public class WayfindingActivity extends FragmentActivity {
         mNodes = readCsvToNodes(R.raw.nodes);
         mEdges = readCsvToEdges(R.raw.edges, mNodes);
 
-        mWayfinder = new Wayfinder(mEdges);
+        mWayfinder = new Wayfinder(mNodes, mEdges);
 
         mDownloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
         mIALocationManager = IALocationManager.create(this);
