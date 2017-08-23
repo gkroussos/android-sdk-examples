@@ -74,4 +74,7 @@
     <string name="example_geofence_description">Demonstrates usage of geofences in IndoorAtlas SDK</string>
     <string name="example_geofence_title">10. Geofences</string>
 
+    <string name="example_wayfinding_title">11. Wayfinding</string>
+    <string name="example_wayfinding_description">Simple wayfinding with precomputed graph.</string>
+
 </resources>

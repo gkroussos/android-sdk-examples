@@ -62,4 +62,7 @@ dependencies {
     // for Open Street Map support
     compile 'org.osmdroid:osmdroid-android:5.6.4'
     compile 'com.github.MKergall:osmbonuspack:6.2'
+
+    // Pathfinding support
+    compile group: 'com.opencsv', name: 'opencsv', version: '4.0'
 }
