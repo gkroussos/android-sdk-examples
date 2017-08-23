@@ -4,6 +4,7 @@ package com.indooratlas.android.sdk.examples.wayfinding;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.PointF;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -24,8 +25,7 @@ public class BlueDotView extends SubsamplingScaleImageView {
     private float radius = 1.0f;
     private PointF dotCenter = null;
     private List<PointF> points;
-    private float[] path;
-    private PointF vPointOld = new PointF(0,0);
+    private Path path = new Path();
 
     public void setRadius(float radius) {
         this.radius = radius;
@@ -51,13 +51,7 @@ public class BlueDotView extends SubsamplingScaleImageView {
 
     public void addDrawPoints(List<PointF> pointList) {
         points = new ArrayList<>(pointList);
-        path = new float[pointList.size()*2];
     }
-
-    private void clearDrawPoints() {
-        points = null;
-    }
-
 
     @Override
     protected void onDraw(Canvas canvas) {
@@ -78,29 +72,25 @@ public class BlueDotView extends SubsamplingScaleImageView {
         }
         if (points != null && !points.isEmpty()) {
             // If we have multiple points we want to draw, draw them here
-            Paint paint = new Paint();
-            paint.setAntiAlias(true);
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(getResources().getColor(R.color.ia_blue));
 
             Paint paint2 = new Paint();
             paint2.setAntiAlias(true);
-            paint2.setStyle(Paint.Style.FILL);
+            paint2.setStyle(Paint.Style.STROKE);
             paint2.setColor(getResources().getColor(R.color.red));
-
-            float scaledRadius = 0.5f * getScale() * radius;
+            paint2.setStrokeWidth(25);
 
             int iter = 0;
+            path.reset();
             for (PointF point : points) {
                 PointF vPoint = sourceToViewCoord(point);
-
-                canvas.drawCircle(vPoint.x, vPoint.y, scaledRadius, paint);
                 if (iter > 0) {
-                    canvas.drawLine(vPointOld.x, vPointOld.y, vPoint.x, vPoint.y, paint2);
+                    path.lineTo(vPoint.x, vPoint.y);
+                } else {
+                    path.moveTo(vPoint.x, vPoint.y);
                 }
                 iter += 1;
-                vPointOld = vPoint;
             }
+            canvas.drawPath(path, paint2);
         }
     }
 }

@@ -20,6 +20,8 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.Toast;
 
 import com.davemorrissey.labs.subscaleview.ImageSource;
@@ -49,6 +51,8 @@ import java.util.List;
 
 import no.wtw.android.dijkstra.exception.PathNotFoundException;
 
+import static com.indooratlas.android.sdk.examples.utils.ExampleUtils.shareText;
+
 @SdkExample(description = R.string.example_wayfinding_description)
 public class WayfindingActivity extends FragmentActivity {
 
@@ -71,6 +75,8 @@ public class WayfindingActivity extends FragmentActivity {
     private List<Node> mNodes;
 
     private Wayfinder mWayfinder;
+    private long mDrawTime = 0;
+    private PointF mDestination = null;
 
     private IALocationListener mLocationListener = new IALocationListenerSupport() {
         @Override
@@ -88,7 +94,11 @@ public class WayfindingActivity extends FragmentActivity {
 
                 List<Node> path = null;
                 try {
-                    path = mWayfinder.getPath(src, dst);
+                    if (mDrawTime == 0 || mDrawTime - System.currentTimeMillis() > 5000) {
+                        path = mWayfinder.getPath(src, dst);
+                        mDrawTime = System.currentTimeMillis();
+                    }
+
                 } catch (PathNotFoundException e) {
                     Log.e(TAG, "Path not found");
                     Toast.makeText(WayfindingActivity.this, "Path not found", Toast.LENGTH_SHORT).show();
@@ -146,9 +156,16 @@ public class WayfindingActivity extends FragmentActivity {
             mIALocationManager.setLocation(location);
         }
 
-        // Setup long click listener for sharing traceId
-        ExampleUtils.shareTraceId(findViewById(R.id.wayfindingView), WayfindingActivity.this,
-                mIALocationManager);
+        findViewById(R.id.wayfindingView).setOnTouchListener(new View.OnTouchListener() {
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN){
+                    int x = (int) event.getX();
+                    int y = (int) event.getY();
+                    mDestination = mImageView.viewToSourceCoord((float)x, (float)y);
+                }
+                return true;
+            }
+        });
 
     }
 
@@ -320,12 +337,14 @@ public class WayfindingActivity extends FragmentActivity {
     private void drawNodes(List<Node> nodes) {
         List<PointF> points = new ArrayList<PointF>();
 
-        for (Node node : nodes) {
-            IALatLng latLng = new IALatLng(node.getY(), node.getX());
-            points.add(mFloorPlan.coordinateToPoint(latLng));
+        if (nodes != null) {
+            for (Node node : nodes) {
+                IALatLng latLng = new IALatLng(node.getY(), node.getX());
+                points.add(mFloorPlan.coordinateToPoint(latLng));
 
+            }
+            mImageView.addDrawPoints(points);
         }
-        mImageView.addDrawPoints(points);
     }
 
     private List<Node> readCsvToNodes(int id) {
