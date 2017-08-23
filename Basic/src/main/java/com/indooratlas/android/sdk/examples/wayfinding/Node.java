@@ -28,4 +28,22 @@ public class Node {
     public void setY(double y) {
         this.y = y;
     }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other)
+            return true;
+        if (!(other instanceof Node))
+            return false;
+        Node n = (Node)other;
+        if (n.getX() == x && n.getY() == y) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return new Double(x).hashCode() ^ new Double(y).hashCode();
+    }
 }
