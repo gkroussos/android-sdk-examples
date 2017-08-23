@@ -65,8 +65,8 @@ public class WayfindingActivity extends FragmentActivity {
     private long mDownloadId;
     private DownloadManager mDownloadManager;
 
-    private List<String[]> mEdges;
-    private List<String[]> mNodes;
+    private List<Edge> mEdges;
+    private List<Node> mNodes;
 
     private IALocationListener mLocationListener = new IALocationListenerSupport() {
         @Override
@@ -77,6 +77,15 @@ public class WayfindingActivity extends FragmentActivity {
                 PointF point = mFloorPlan.coordinateToPoint(latLng);
                 mImageView.setDotCenter(point);
                 mImageView.postInvalidate();
+                //drawNodes(mNodes);
+
+                List<Node> path = new ArrayList<>();
+                path.add(new Node(24.94567868, 60.17067791));
+                path.add(new Node(24.94565224, 60.17044214));
+                path.add(new Node(24.94578858, 60.17042734));
+
+                drawNodes(path);
+
             }
         }
     };
@@ -107,10 +116,10 @@ public class WayfindingActivity extends FragmentActivity {
         // prevent the screen going to sleep while app is on foreground
         findViewById(android.R.id.content).setKeepScreenOn(true);
 
-        mEdges = readCsv(this, R.raw.edges);
-        mNodes = readCsv(this, R.raw.nodes);
-
         mImageView = (BlueDotView) findViewById(R.id.wayfindingView);
+
+        //mEdges = readCsv(R.raw.edges);
+        mNodes = readCsvToNodes(R.raw.nodes);
 
         mDownloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
         mIALocationManager = IALocationManager.create(this);
@@ -296,6 +305,24 @@ public class WayfindingActivity extends FragmentActivity {
         return rowList;
     }
 
+    private void drawNodes(List<Node> nodes) {
+        List<PointF> points = new ArrayList<PointF>();
 
+        for (Node node : nodes) {
+            IALatLng latLng = new IALatLng(node.getY(), node.getX());
+            points.add(mFloorPlan.coordinateToPoint(latLng));
+
+        }
+        mImageView.addDrawPoints(points);
+    }
+
+    private List<Node> readCsvToNodes(int id) {
+        List<String[]> csv = readCsv(this, id);
+        List<Node> nodes = new ArrayList<>();
+        for (String[] ss : csv) {
+            nodes.add(new Node(Float.parseFloat(ss[1]), Float.parseFloat(ss[0])));
+        }
+        return nodes;
+    }
 }
 
