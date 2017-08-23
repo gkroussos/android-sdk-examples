@@ -1,28 +1,25 @@
 package com.indooratlas.android.sdk.examples.wayfinding;
 
 import android.Manifest;
-import android.app.Activity;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.graphics.PointF;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Looper;
-import android.os.SystemClock;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
@@ -35,7 +32,6 @@ import com.indooratlas.android.sdk.IALocationRequest;
 import com.indooratlas.android.sdk.IARegion;
 import com.indooratlas.android.sdk.examples.R;
 import com.indooratlas.android.sdk.examples.SdkExample;
-import com.indooratlas.android.sdk.examples.utils.ExampleUtils;
 import com.indooratlas.android.sdk.resources.IAFloorPlan;
 import com.indooratlas.android.sdk.resources.IALatLng;
 import com.indooratlas.android.sdk.resources.IALocationListenerSupport;
@@ -50,13 +46,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
-
-import no.wtw.android.dijkstra.exception.PathNotFoundException;
-
-import static com.indooratlas.android.sdk.examples.utils.ExampleUtils.shareText;
 
 @SdkExample(description = R.string.example_wayfinding_description)
 public class WayfindingActivity extends FragmentActivity {
@@ -83,6 +73,9 @@ public class WayfindingActivity extends FragmentActivity {
     private Wayfinder mWayfinder;
     //private long mDrawTime = 0;
     private Node mDestination;
+    private Node mSourceNode;
+
+    private GestureDetector mGestureDetector;
 
     private WayfindingActivity mWayfindingActivity = this;
 
@@ -101,17 +94,12 @@ public class WayfindingActivity extends FragmentActivity {
 
                     Node src = mWayfinder.getNearestNode(new double[]{location.getLatitude(), location.getLongitude()});
 
-                    /*try {
-                        mPath = mWayfinder.getPath(src, mDestination);
-                    } catch (PathNotFoundException e) {
-                        Log.e(TAG, "Path not found");
-                        Toast.makeText(WayfindingActivity.this, "Path not found", Toast.LENGTH_SHORT).show();
-                    }*/
-                    mWayfinder.updatePathAsync(src, mDestination, mWayfindingActivity);
-                    //mDrawTime = System.currentTimeMillis();
+                    if ((mSourceNode == null || !src.equals(mSourceNode)) && mDestination != null) {
+                        mWayfinder.updatePathAsync(src, mDestination, mWayfindingActivity);
+                    }
+                    mSourceNode = src;
+                    drawNodes(mWayfindingActivity.getPath());
                 }
-
-                drawNodes(mWayfindingActivity.getPath());
             }
         }
     };
@@ -163,18 +151,25 @@ public class WayfindingActivity extends FragmentActivity {
             mIALocationManager.setLocation(location);
         }
 
-        findViewById(R.id.wayfindingView).setOnTouchListener(new View.OnTouchListener() {
-            public boolean onTouch(View v, MotionEvent event) {
-                if (event.getAction() == MotionEvent.ACTION_DOWN){
-                    int x = (int) event.getX();
-                    int y = (int) event.getY();
-                    PointF point = mImageView.viewToSourceCoord((float)x, (float)y);
-                    IALatLng latLng = mFloorPlan.pointToCoordinate(point);
-                    mDestination = mWayfinder.getNearestNode(new double[]{latLng.latitude, latLng.longitude});
-                    mWayfinder.cancelRunningTask();
-                    mPath = null
+        mGestureDetector = new GestureDetector(this,
+                new GestureDetector.SimpleOnGestureListener() {
+                @Override
+                public boolean onSingleTapConfirmed(MotionEvent e) {
+                    if (mImageView.isReady()) {
+                        PointF sCoord = mImageView.viewToSourceCoord(e.getX(), e.getY());
+                        IALatLng latLng = mFloorPlan.pointToCoordinate(sCoord);
+                        mDestination = mWayfinder.getNearestNode(new double[]{latLng.latitude, latLng.longitude});
+                        mWayfinder.cancelRunningTask();
+                        mPath = null;
+                    }
+                    return true;
                 }
-                return true;
+        });
+
+        mImageView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                return mGestureDetector.onTouchEvent(event);
             }
         });
 
