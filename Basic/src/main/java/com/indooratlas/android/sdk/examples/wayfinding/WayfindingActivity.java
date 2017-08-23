@@ -47,6 +47,8 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
+import no.wtw.android.dijkstra.exception.PathNotFoundException;
+
 @SdkExample(description = R.string.example_wayfinding_description)
 public class WayfindingActivity extends FragmentActivity {
 
@@ -68,6 +70,8 @@ public class WayfindingActivity extends FragmentActivity {
     private List<Edge> mEdges;
     private List<Node> mNodes;
 
+    private Wayfinder mWayfinder;
+
     private IALocationListener mLocationListener = new IALocationListenerSupport() {
         @Override
         public void onLocationChanged(IALocation location) {
@@ -77,15 +81,20 @@ public class WayfindingActivity extends FragmentActivity {
                 PointF point = mFloorPlan.coordinateToPoint(latLng);
                 mImageView.setDotCenter(point);
                 mImageView.postInvalidate();
-                //drawNodes(mNodes);
 
-                List<Node> path = new ArrayList<>();
-                path.add(new Node(24.94567868, 60.17067791));
-                path.add(new Node(24.94565224, 60.17044214));
-                path.add(new Node(24.94578858, 60.17042734));
+                //Node src = new Node(location.getLongitude(), location.getLatitude());
+                Node src = mNodes.get(0);
+                Node dst = mNodes.get(mNodes.size() - 1);
+
+                List<Node> path = null;
+                try {
+                    path = mWayfinder.getPath(src, dst);
+                } catch (PathNotFoundException e) {
+                    Log.e(TAG, "Path not found");
+                    Toast.makeText(WayfindingActivity.this, "Path not found", Toast.LENGTH_SHORT).show();
+                }
 
                 drawNodes(path);
-
             }
         }
     };
@@ -120,6 +129,9 @@ public class WayfindingActivity extends FragmentActivity {
 
         //mEdges = readCsv(R.raw.edges);
         mNodes = readCsvToNodes(R.raw.nodes);
+        mEdges = readCsvToEdges(R.raw.edges, mNodes);
+
+        mWayfinder = new Wayfinder(mEdges);
 
         mDownloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
         mIALocationManager = IALocationManager.create(this);
@@ -323,6 +335,19 @@ public class WayfindingActivity extends FragmentActivity {
             nodes.add(new Node(Float.parseFloat(ss[1]), Float.parseFloat(ss[0])));
         }
         return nodes;
+    }
+
+    private List<Edge> readCsvToEdges(int id, List<Node> nodes) {
+        List<String[]> csv = readCsv(this, id);
+        List<Edge> edges = new ArrayList<>();
+        for (String[] ss : csv) {
+            edges.add(new Edge(
+                    nodes.get(Integer.parseInt(ss[0]) - 1),
+                    nodes.get(Integer.parseInt(ss[1]) - 1),
+                    Float.parseFloat(ss[2]))
+            );
+        }
+        return edges;
     }
 }
 
