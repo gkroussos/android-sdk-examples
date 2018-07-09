@@ -3,7 +3,9 @@ package com.indooratlas.android.sdk.examples.background;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Environment;
 import android.support.v4.content.FileProvider;
+import android.util.Log;
 
 import com.indooratlas.android.sdk.IALocation;
 import com.indooratlas.android.sdk.IARegion;
@@ -60,12 +62,15 @@ public class LocationStore {
     }
 
     private File getStorageFile() throws IOException {
-        File privateRootDir = mContext.getFilesDir();
+        File privateRootDir = Environment.getExternalStorageDirectory();
         File sharedDir = new File(privateRootDir, "shared");
         if (!sharedDir.exists()) {
             sharedDir.mkdir();
         }
-        File storeFile = new File(sharedDir, "events.csv");
+        EventFileName efn = new EventFileName();
+        File storeFile = new File(sharedDir, "events_"+ efn.getFileName()+".csv");
+        Log.v("File Location", privateRootDir.getName());
+        Log.v("File Location", sharedDir.getName());
         if (!storeFile.exists()) {
             storeFile.createNewFile();
         }
@@ -97,7 +102,7 @@ public class LocationStore {
             regionType = region.getType();
             regionId = region.getId();
         }
-        return String.format(Locale.US, "%d,%f,%f,%f,%d,%f,%f,%d,%s\n",
+        return String.format(Locale.US, "%d,%.16f,%.16f,%f,%d,%f,%f,%d,%s\n",
                 ts, lat, lon, accuracy, floor, floorCertainty, bearing, regionType, regionId);
     }
 

@@ -45,6 +45,13 @@ public class BackgroundActivity extends AppCompatActivity {
     }
 
     public void onStart(View v) {
+        EventFileName efn = new EventFileName();
+        try {
+            efn.setFileName("");
+        } catch (SecurityException e) {
+            e.printStackTrace();
+            efn.setFileName("8888");
+        }
         mManager.requestLocationUpdates(IALocationRequest.create(), getPendingIntent());
     }
 
